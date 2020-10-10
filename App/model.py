@@ -21,22 +21,18 @@
  """
 import config
 from DISClib.ADT import list as lt
-from DISClib.DataStructures import listiterator as it
 from DISClib.ADT import orderedmap as om
 from DISClib.DataStructures import mapentry as me
 from DISClib.ADT import map as m
 import datetime
 assert config
+from DISClib.DataStructures import listiterator as it
 
 """
 En este archivo definimos los TADs que vamos a usar,
 es decir contiene los modelos con los datos en memoria
 
-Se define la estructura de un catálogo de libros.
-El catálogo tendrá  una lista para los libros.
 
-Los autores, los tags y los años se guardaran en
-tablas de simbolos.
 """
 
 # -----------------------------------------------------
@@ -53,11 +49,11 @@ def newAnalyzer():
 
     Retorna el analizador inicializado.
     """
-    analyzer = {'crimes': None,
+    analyzer = {'accidents': None,
                 'dateIndex': None
                 }
 
-    analyzer['crimes'] = lt.newList('SINGLE_LINKED', compareIds)
+    analyzer['accidents'] = lt.newList('SINGLE_LINKED', compareIds)
     analyzer['dateIndex'] = om.newMap(omaptype='RBT',
                                       comparefunction=compareDates)
     return analyzer
@@ -66,15 +62,15 @@ def newAnalyzer():
 # Funciones para agregar informacion al catalogo
 
 
-def addCrime(analyzer, crime):
+def addAccident(analyzer, accident):
     """
     """
-    lt.addLast(analyzer['crimes'], crime)
-    updateDateIndex(analyzer['dateIndex'], crime)
+    lt.addLast(analyzer['accidents'], accident)
+    updateDateIndex(analyzer['dateIndex'], accident)
     return analyzer
 
 
-def updateDateIndex(map, crime):
+def updateDateIndex(map, accident):
     """
     Se toma la fecha del crimen y se busca si ya existe en el arbol
     dicha fecha.  Si es asi, se adiciona a su lista de crimenes
@@ -83,53 +79,53 @@ def updateDateIndex(map, crime):
     Si no se encuentra creado un nodo para esa fecha en el arbol
     se crea y se actualiza el indice de tipos de crimenes
     """
-    occurreddate = crime['OCCURRED_ON_DATE']
-    crimedate = datetime.datetime.strptime(occurreddate, '%Y-%m-%d %H:%M:%S')
-    entry = om.get(map, crimedate.date())
+    occurreddate = accident['Start_Time']
+    accidentdate = datetime.datetime.strptime(occurreddate, '%Y-%m-%d %H:%M:%S')
+    entry = om.get(map, accidentdate.date())
     if entry is None:
-        datentry = newDataEntry(crime)
-        om.put(map, crimedate.date(), datentry)
+        datentry = newDataEntry(accident)
+        om.put(map, accidentdate.date(), datentry)
     else:
         datentry = me.getValue(entry)
-    addDateIndex(datentry, crime)
+    addDateIndex(datentry, accident)
     return map
 
 
-def addDateIndex(datentry, crime):
+def addDateIndex(datentry, accident):
     """
     Actualiza un indice de tipo de crimenes.  Este indice tiene una lista
     de crimenes y una tabla de hash cuya llave es el tipo de crimen y
     el valor es una lista con los crimenes de dicho tipo en la fecha que
     se está consultando (dada por el nodo del arbol)
     """
-    lst = datentry['lstcrimes']
-    lt.addLast(lst, crime)
+    lst = datentry['lstaccident']
+    lt.addLast(lst, accident)
     offenseIndex = datentry['offenseIndex']
-    offentry = m.get(offenseIndex, crime['OFFENSE_CODE_GROUP'])
+    offentry = m.get(offenseIndex, accident['Description'])
     if (offentry is None):
-        entry = newOffenseEntry(crime['OFFENSE_CODE_GROUP'], crime)
-        lt.addLast(entry['lstoffenses'], crime)
-        m.put(offenseIndex, crime['OFFENSE_CODE_GROUP'], entry)
+        entry = newOffenseEntry(accident['Description'], accident)
+        lt.addLast(entry['lstoffenses'], accident)
+        m.put(offenseIndex, accident['Description'], entry)
     else:
         entry = me.getValue(offentry)
-        lt.addLast(entry['lstoffenses'], crime)
+        lt.addLast(entry['lstoffenses'], accident)
     return datentry
 
 
-def newDataEntry(crime):
+def newDataEntry(accident):
     """
     Crea una entrada en el indice por fechas, es decir en el arbol
     binario.
     """
-    entry = {'offenseIndex': None, 'lstcrimes': None}
+    entry = {'offenseIndex': None, 'lstaccident': None}
     entry['offenseIndex'] = m.newMap(numelements=30,
                                      maptype='PROBING',
                                      comparefunction=compareOffenses)
-    entry['lstcrimes'] = lt.newList('SINGLE_LINKED', compareDates)
+    entry['lstaccident'] = lt.newList('SINGLE_LINKED', compareDates)
     return entry
 
 
-def newOffenseEntry(offensegrp, crime):
+def newOffenseEntry(offensegrp, accident):
     """
     Crea una entrada en el indice por tipo de crimen, es decir en
     la tabla de hash, que se encuentra en cada nodo del arbol.
@@ -145,67 +141,74 @@ def newOffenseEntry(offensegrp, crime):
 # ==============================
 
 
-def crimesSize(analyzer):
+def accidentsSize(analyzer):
     """
-    Número de crimenes
+    Número de libros en el catago
     """
-    return lt.size(analyzer['crimes'])
+    return lt.size(analyzer['accidents'])
 
 
 def indexHeight(analyzer):
-    """
-    Altura del arbol
+    """Numero de autores leido
     """
     return om.height(analyzer['dateIndex'])
 
 
 def indexSize(analyzer):
-    """
-    Numero de elementos en el indice
+    """Numero de autores leido
     """
     return om.size(analyzer['dateIndex'])
 
 
 def minKey(analyzer):
-    """
-    Llave mas pequena
+    """Numero de autores leido
     """
     return om.minKey(analyzer['dateIndex'])
 
 
 def maxKey(analyzer):
-    """
-    Llave mas grande
+    """Numero de autores leido
     """
     return om.maxKey(analyzer['dateIndex'])
 
 
-def getCrimesByRange(analyzer, initialDate, finalDate):
+def getAccidentsByRange(analyzer, initialDate, finalDate):
     """
     Retorna el numero de crimenes en un rago de fechas.
     """
     lst = om.values(analyzer['dateIndex'], initialDate, finalDate)
-    lstiterator = it.newIterator(lst)
-    totcrimes = 0
-    while (it.hasNext(lstiterator)):
-        lstdate = it.next(lstiterator)
-        totcrimes += lt.size(lstdate['lstcrimes'])
-    return totcrimes
+    return lst
 
 
-def getCrimesByRangeCode(analyzer, initialDate, offensecode):
+def getAccidentsByRangeCode(analyzer, initialDate, offensecode):
     """
     Para una fecha determinada, retorna el numero de crimenes
     de un tipo especifico.
     """
-    crimedate = om.get(analyzer['dateIndex'], initialDate)
-    if crimedate['key'] is not None:
-        offensemap = me.getValue(crimedate)['offenseIndex']
+    accidentdate = om.get(analyzer['dateIndex'], initialDate)
+    if accidentdate['key'] is not None:
+        offensemap = me.getValue(accidentdate)['offenseIndex']
         numoffenses = m.get(offensemap, offensecode)
         if numoffenses is not None:
             return m.size(me.getValue(numoffenses)['lstoffenses'])
         return 0
 
+def accidentesPorFecha(cont, date):
+    data = om.get(cont['dateIndex'],date)
+    values = me.getValue(data)['offenseIndex']
+    accidents = m.keySet(values)
+    cantidad = {'total': 0,'1':0,'2':0,'3':0,'4':0}
+    iterator = it.newIterator(accidents)
+    while it.hasNext(iterator):
+        actual = m.get(values,it.next(iterator))
+        data = me.getValue(actual)['lstoffenses']
+        cantidad['total'] += lt.size(data)
+        siguiente = it.newIterator(data)
+        while it.hasNext(siguiente):
+            current = it.next(siguiente)
+            severidad = current['Severity']
+            cantidad[severidad] += 1
+    return (cantidad,accidents)
 
 # ==============================
 # Funciones de Comparacion
@@ -226,7 +229,8 @@ def compareIds(id1, id2):
 
 def compareDates(date1, date2):
     """
-    Compara dos fechas
+    Compara dos ids de libros, id es un identificador
+    y entry una pareja llave-valor
     """
     if (date1 == date2):
         return 0
@@ -238,7 +242,8 @@ def compareDates(date1, date2):
 
 def compareOffenses(offense1, offense2):
     """
-    Compara dos tipos de crimenes
+    Compara dos ids de libros, id es un identificador
+    y entry una pareja llave-valor
     """
     offense = me.getKey(offense2)
     if (offense1 == offense):
